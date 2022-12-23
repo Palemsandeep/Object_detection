@@ -1,13 +1,15 @@
 import streamlit as st
 from PIL import Image
-import glob
-import matplotlib.pyplot as plt
+# import glob
+# import matplotlib.pyplot as plt
 import cv2
 import imutils
 import pytesseract
 from configparser import ConfigParser
+# import easyocr
 import os
 import numpy as np
+import re
 
 def main():
 	st.set_page_config(layout="wide")
@@ -107,7 +109,7 @@ def main():
 	with c35:
 		st.markdown("")
 
-	st_list3 = ['Tesseract-Ocr','East-Ocr']
+	st_list3 = ['Tesseract-Ocr','Easy-Ocr']
 	c41,c42,c43,c44,c45 = st.columns(((3,5,1,1,1)))
 	with c41:
 		if select3 in st_list3:
@@ -204,6 +206,7 @@ def main():
 	with c65:
 		st.markdown("")
 	if select5 is True:
+
 		state_dictionary = {'AN': 'Andaman and Nicobar Islands', 
 		                    'AP': 'Andhra Pradesh', 
 		                    'AR': 'Arunachal Pradesh', 
@@ -240,80 +243,102 @@ def main():
 		                    'UP': 'Uttar Pradesh', 
 		                    'UT': 'Uttarakhand', 
 		                    'WB': 'West Bengal'}
-		
-		for image in all_imgs:
-			try:
-				image = imutils.resize(image, width=300 )
+		if select3=='Tesseract-Ocr':
+			value = 1
+			for input_image in all_imgs:
+			    # Resizing the image
+			    Resized_image = imutils.resize(input_image, width=300 )
+			    #Converting the image to Gray Scale
+			    gray_image = cv2.cvtColor(Resized_image, cv2.COLOR_BGR2GRAY)
+			    # Filtering the image with bilateral filter
+			    filtred_image = cv2.bilateralFilter(gray_image,15,15,15)
+			    # Applying the canny edge detection method
+			    canny_edge_image = cv2.Canny(filtred_image, 30, 200)
+			    # Finding Contours
+			    cnts,new = cv2.findContours(canny_edge_image.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+			    # Drewing Contours
+			    image1= input_image.copy()
+			    cv2.drawContours(image1,cnts,-1,(0,255,0),1,lineType=cv2.LINE_AA)
+			    # Sorting the contours to size of 30
+			    cnts = sorted(cnts, key = cv2.contourArea, reverse = True) [:30]
+			    screenCnt = None
+			    image2 = input_image.copy()
+			    cv2.drawContours(image2,cnts,-1,(0,255,0),3)
+			    #Finding the contours with four sides
+			    i=7
+			    flag = False
+			    for c in cnts:
+			        perimeter = cv2.arcLength(c, True)
+			        approx = cv2.approxPolyDP(c, 0.018 * perimeter, True)
+			        if len(approx) == 4:
+			          flag = True 
+			          screenCnt = approx
+			          x,y,w,h = cv2.boundingRect(c) 
+			          new_img=Resized_image[y:y+h,x:x+w]
+			          cv2.imwrite('./image.png',new_img)
+			          i+=1
+			          break
+			        else:
+			          cv2.imwrite('./image.png',filtred_image)
+			    # Drawing the detected square contour on the plate
+			    try:
+			      cv2.drawContours(Resized_image, [screenCnt], -1, (0, 255, 0), 3)
+			    except Exception as e:
+			      pass
+			    # Passing the image to tesseract to get the text
+			    if flag == True:
 
-				#Converting the input image to greyscale
+			      Cropped_loc = './image.png'
+			      plate = pytesseract.image_to_string(Cropped_loc, lang='eng',config ='--oem 3 --psm 6')
+			    else:
 
-				gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+			      Cropped_loc = './image.png'
+			      plate = pytesseract.image_to_string(Cropped_loc, lang='eng',config ='--oem 3 --psm 6')
+			    # Remove unwated characters from the text
+			    filteredText = re.sub('[^A-Z0-9.]+', ' ',plate)
+			    if filteredText == " " or len(filteredText)<5:
+			      plate = pytesseract.image_to_string(filtred_image, lang='eng',config ='--oem 3 --psm 6')
+			      plate_text = re.sub('[^A-Z0-9.]+', ' ',plate)
+			      string = plate.replace(" ","")
+			      string_list = string[:2]
+			      try:
+			        state = state_dictionary[string_list]
+			      except Exception as e:
+			       state = "UNKNOWN"
+			       try:
+			        if state == "UNKNOWN":
+			          plate = pytesseract.image_to_string(input_image, lang='eng',config ='--oem 3 --psm 6')
+			          plate_text = re.sub('[^A-Z0-9.]+', ' ',plate)
+			          string = plate_text.replace(" ","")
+			          string_list = string[:2]
+			          state = state_dictionary[string_list]
+			       except:
+			        state = 'UNKNOWN'
+			      output_file.write(f"\n{value} Number plate: {string}  state: {state}\n")
+			    elif filteredText != " ":
+			      string = filteredText.replace(" ","")
+			      string_list = string[:2]
+			      try:
+			        state = state_dictionary[string_list]
+			      except Exception as e:
+			        state ="UNKNOWN"
+			        try:
+			          if state == "UNKNOWN":
+			            plate = pytesseract.image_to_string(input_image, lang='eng',config ='--oem 3 --psm 6')
+			            plate_text = re.sub('[^A-Z0-9.]+', ' ',plate)
+			            string = plate_text.replace(" ","")
+			            string_list = string[:2]
+			            state = state_dictionary[string_list]
+			        except:
+			          state = 'UNKNOWN'
+			      
+			      output_file.write(f"\n{value} Number plate: {string}  state: {state}\n")
+			    value += 1
+		elif select3 == 'Easy-Ocr':
+			st.markdown("Not yet included")
 
 
-				#Reducing the noise in the greyscale image
-
-				gray_image = cv2.bilateralFilter(gray_image, 11, 17, 17) 
-
-
-				#Detecting the edges of the smoothened image
-
-				edged = cv2.Canny(gray_image, 30, 200) 
-
-
-				#Finding the contours from the edged image
-
-				cnts,new = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-				image1=gray_image.copy()
-				cv2.drawContours(image1,cnts,-1,(0,255,0),3)
-
-
-				#Sorting the identified contours
-
-				cnts = sorted(cnts, key = cv2.contourArea, reverse = True) [:30]
-				screenCnt = 0
-				image2 = gray_image.copy()
-				cv2.drawContours(image2,cnts,-1,(0,255,0),3)
-
-
-				#Finding the contour with four sides and Cropping the rectangular part identified as license plate
-
-				i=7
-				for c in cnts:
-				      perimeter = cv2.arcLength(c, True)
-				      approx = cv2.approxPolyDP(c, 0.018 * perimeter, True)
-				      if len(approx) == 4: 
-				              screenCnt = approx
-				      x,y,w,h = cv2.boundingRect(c)
-				      new_img=gray_image[y:y+h,x:x+w]
-				      cv2.imwrite('./'+str(i)+'.png',new_img)
-				      i+=1
-				      break
-
-				#Drawing the selected contour on the original image
-
-				cv2.drawContours(image, [screenCnt], -1, (0, 255, 0), 3)
-
-
-				#Extracting text from the image of the cropped license plate usinig tessaract
-
-				Cropped_loc = './7.png'
-				plate = pytesseract.image_to_string(Cropped_loc,lang ='eng',config ='--oem 3 --psm 6')
-				# Removing special Characters from the text
-
-				bad_chars = [';', ':', '!', "*","”","“",'»']
-				text = plate
-
-				# using filter() to  remove bad_chars
-				text = ''.join((filter(lambda i: i not in bad_chars,text)))
-				text = text.split()
-				first_in_list = text[0]
-				state = state_dictionary[first_in_list[:2]]
-				text = " ".join(line.strip() for line in plate.splitlines())
-				dict_file[text] = state
-				output_file.write(f"\n Number_plate : {text}  state:  {state}") 
-			except Exception as e:
-				continue
-		st.write(dict_file.keys())
+		# st.write(dict_file.keys())
 	output_file.close()
 	
 	c61,c62,c63 = st.columns((7,3,5))
