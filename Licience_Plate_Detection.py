@@ -341,37 +341,35 @@ def main():
 		    ocr_results = reader.readtext(image)
 		    for detection in ocr_results:
 			if detection[2] > confidence_treshold and detection[1] not in india:
-			    detected = detection[1].upper()
-			    text_detection = re.sub('[^A-Z0-9.]+', ' ',detected)
-			    text = text_detection.replace(" ","")
-			    state_text = text[:2]
-			    if state_text == 'HH':
-			      state_text = 'MH'
-			    elif state_text == 'HB':
-			      state_text = 'WB'
-			    elif state_text == 'PV':
-			      state_text = 'PY'
-			    elif state_text == '6J':
-			      state_text = 'GJ'
-			    elif state_text == 'IN':
-			      state_text = 'TN'
-
-			    state_list = ['AN', 'AP', 'AR', 'AS', 'BR', 'CH', 'CT', 'DN', 'DD', 'DL', 'GA', 'GJ', 'HR', 'HP', 'JK', 'JH', 'KA', 'KL', 'LD', 'MP', 'MH', 'MN', 'ML', 'MZ', 'NL', 'OR', 'PY', 'PB', 'RJ', 'SK', 'TN', 'TG', 'TR','TS', 'UP', 'UT', 'WB']        
-			    try:
-			      if state_text in  state_list:
-				state = state_dictionary[state_text]
-				cv2_imshow(img)
-				output_file.write(f"\n{value} Number Plate:    {text}      state:  {state}\n")
-				value += 1
-				break
-			      else:
-				state = "UNKNOWN"
-				cv2_imshow(img)
-				output_file.write(f"\n{value} Number Plate: {text}        state:  {state}\n")
-				value += 1
-				break
-			    except Exception as e:
-			      pass
+			     detected = detection[1].upper()
+			     text_detection = re.sub('[^A-Z0-9.]+', ' ',detected)
+			     text = text_detection.replace(" ","")
+			     state_text = text[:2]
+			     if state_text == 'HH':
+				 state_text = 'MH'
+			     elif state_text == 'HB':
+				 state_text = 'WB'
+			     elif state_text == 'PV':
+				 state_text = 'PY'
+			     elif state_text == '6J':
+			         state_text = 'GJ'
+			     elif state_text == 'IN':
+				 state_text = 'TN'
+			     state_list = ['AN', 'AP', 'AR', 'AS', 'BR', 'CH', 'CT', 'DN', 'DD', 'DL', 'GA', 'GJ', 'HR', 'HP', 'JK', 'JH', 'KA', 'KL', 'LD', 'MP', 'MH', 'MN', 'ML', 'MZ', 'NL', 'OR', 'PY', 'PB', 'RJ', 'SK', 'TN', 'TG', 'TR','TS', 'UP', 'UT', 'WB']        
+			     try:
+			        if state_text in  state_list:
+			            state = state_dictionary[state_text]
+			            output_file.write(f"\n{value} Number Plate:    {text}      state:  {state}\n")
+			            value += 1
+			            break
+			        else:
+			            state = "UNKNOWN"
+			            cv2_imshow(img)
+			            output_file.write(f"\n{value} Number Plate: {text}        state:  {state}\n")
+			            value += 1
+			            break
+			     except Exception as e:
+				pass
 
 
 
