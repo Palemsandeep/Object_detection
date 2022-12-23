@@ -335,17 +335,11 @@ def main():
 			      output_file.write(f"\n{value} Number plate: {string}  state: {state}\n")
 			    value += 1
 		elif select3 == 'Easy-Ocr':
-			st.markdown("Not yet included")
 			reader = easyocr.Reader(['en'])
-			path = "/content/drive/MyDrive/image count of 50" + "/*.*"
-			all_imgs = glob.glob(path,recursive=True)
-			print(len(all_imgs))
 			value = 1
-			for image in all_imgs:
-			    img = cv2.imread(image)
-			    ocr_results = reader.readtext(image)
-			    for detection in ocr_results:
-				india = ['IND','INDIA']
+			india = ['IND','INDIA']
+		    	ocr_results = reader.readtext(image)
+		    	for detection in ocr_results:
 				if detection[2] > confidence_treshold and detection[1] not in india:
 				    detected = detection[1].upper()
 				    text_detection = re.sub('[^A-Z0-9.]+', ' ',detected)
